@@ -983,6 +983,8 @@ def main():
 # 如果是主程序运行，执行main函数
 if __name__ == "__main__":
     main() 
+    # time.sleep(5 * 60)
+    # os.system('clear')
     # input("Press Enter to stop the application...\n")
     # try:
     #     while True:
