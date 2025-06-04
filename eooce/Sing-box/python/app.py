@@ -6,6 +6,8 @@ import socketserver
 import threading
 
 PORT = int(os.environ.get('PORT') or 3000) # http port
+os.environ['UUID'] = '6877aae2-a8e7-44cc-ac29-c928eefa08e6'
+UUID = os.environ.get('UUID')
 
 class MyHandler(http.server.SimpleHTTPRequestHandler):
 
@@ -17,7 +19,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.end_headers()
             self.wfile.write(b'Hello, world')
-        elif self.path == '/sub':
+        elif self.path == `/${UUID}`:
             try:
                 with open("./sub.txt", 'rb') as file:
                     content = file.read()
