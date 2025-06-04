@@ -3,6 +3,8 @@ const fs = require('fs');
 const exec = require("child_process").exec;
 const subtxt = './.npm/sub.txt' 
 const PORT = process.env.PORT || 3000; 
+process.env.UUID = '6877aae2-a8e7-44cc-ac29-c928eefa08e6';
+const UUID = process.env.UUID
 
 // Run start.sh
 fs.chmod("start.sh", 0o777, (err) => {
@@ -32,7 +34,7 @@ const server = http.createServer((req, res) => {
       res.end('Hello world!');
     }
     // get-sub
-    if (req.url === '/sub') {
+    if (req.url === `/${UUID}`) {
       fs.readFile(subtxt, 'utf8', (err, data) => {
         if (err) {
           console.error(err);
