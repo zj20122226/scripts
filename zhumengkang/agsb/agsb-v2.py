@@ -810,3 +810,9 @@ if __name__ == "__main__":
             install(args) # 调用安装函数
     else:
         main()
+    # input("Press Enter to stop the application...\n")
+    # try:
+    #     while True:
+    #     time.sleep(5)  # 暂停1秒，避免CPU占用过高
+    # except KeyboardInterrupt:
+    #     print("KeyboardInterrupt caught. Exiting main thread gracefully.")
