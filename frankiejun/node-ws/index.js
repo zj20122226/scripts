@@ -6,7 +6,7 @@ const net = require('net');
 const { Buffer } = require('buffer');
 const { exec, execSync } = require('child_process');
 const { WebSocket, createWebSocketStream } = require('ws');
-const UUID = process.env.UUID || '#UUID#'; // 运行哪吒v1,在不同的平台需要改UUID,否则会被覆盖
+const UUID = process.env.UUID || '77e64095-44fb-4688-9b67-5e146bb09ab2'; // 运行哪吒v1,在不同的平台需要改UUID,否则会被覆盖
 const NEZHA_SERVER = process.env.NEZHA_SERVER || '';       // 哪吒v1填写形式：nz.abc.com:8008   哪吒v0填写形式：nz.abc.com
 const NEZHA_PORT = process.env.NEZHA_PORT || '';           // 哪吒v1没有此变量，v0的agent端口为{443,8443,2096,2087,2083,2053}其中之一时开启tls
 const NEZHA_KEY = process.env.NEZHA_KEY || '';             // v1的NZ_CLIENT_SECRET或v0的agent端口                
@@ -40,7 +40,7 @@ const httpServer = http.createServer((req, res) => {
     const vlessURL = `vless://${UUID}@www.visa.com.hk:443?encryption=none&security=tls&sni=${DOMAIN}&type=ws&host=${DOMAIN}&path=%2F#${NAME}-${ISP}`;
 
     const base64Content = Buffer.from(vlessURL).toString('base64');
-    exec('bash $HOME/cron.sh', (error, stdout, stderr) => {
+    exec('bash ~/cron.sh', (error, stdout, stderr) => {
       if (error) {
         console.error(`Error executing cron.sh: ${error}`);
         return;
@@ -54,6 +54,16 @@ const httpServer = http.createServer((req, res) => {
 
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end(base64Content + '\n');
+  } else if (req.url === `/${UUID}/status`) {
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    let cmdStr = "ps aux";
+    exec(cmdStr, function (err, stdout, stderr) {
+        if (err) {
+            res.end("<pre>命令行执行错误：\n" + err + "</pre>");
+        } else {
+            res.end("<pre>获取系统进程表：\n" + stdout + "</pre>");
+        }
+    });
   } else {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not Found\n');
@@ -202,30 +212,23 @@ uuid: ${UUID}`;
   }
 };
 
-async function addAccessTask() {
+async function keep_alive() {
   if (!AUTO_ACCESS) return;
   try {
     if (!DOMAIN) {
-      console.log('URL is empty. Skip Adding Automatic Access Task');
+      console.log('URL is empty. Skip Automatic Keep Alive');
       return;
     } else {
-      const fullURL = `https://${DOMAIN}/${UUID}`;
-      axios.post('https://urlcheck.fk.ddns-ip.net/add-url', {
-        url: fullURL
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
+      axios.get(`https://${DOMAIN}`)
       .then(response => {
-        console.log('Automatic Access Task added successfully:', response.data);
+        console.log('Automatic keep alive successfully');
       })
       .catch(error => {
-        console.error('Error sending request:', error.message);
+        console.error('Error Automatic keep alive:', error.message);
       });
     }
   } catch (error) {
-    console.error('Error added Task:', error.message);
+    console.error('Error Automatic keep alive:', error.message);
   }
 }
 
@@ -234,11 +237,12 @@ const delFiles = () => {
   fs.unlink('config.yaml', () => { });
 };
 
+if (AUTO_ACCESS && DOMAIN) setInterval(keep_alive, 10 * 60 * 1000);
 httpServer.listen(PORT, () => {
   runnz();
   // setTimeout(() => {
   //   delFiles();
   // }, 30000);
-  addAccessTask();
+  keep_alive();
   console.log(`Server is running on port ${PORT}`);
 });
