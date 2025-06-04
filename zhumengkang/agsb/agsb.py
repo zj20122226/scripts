@@ -983,3 +983,9 @@ def main():
 # 如果是主程序运行，执行main函数
 if __name__ == "__main__":
     main() 
+    # input("Press Enter to stop the application...\n")
+    # try:
+    #     while True:
+    #     time.sleep(5)  # 暂停1秒，避免CPU占用过高
+    # except KeyboardInterrupt:
+    #     print("KeyboardInterrupt caught. Exiting main thread gracefully.")
