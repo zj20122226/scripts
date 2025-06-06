@@ -19,7 +19,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.end_headers()
             self.wfile.write(b'Hello, world')
-        elif self.path == `/${UUID}`:
+        elif self.path == f"/{UUID}":
             try:
                 with open("./sub.txt", 'rb') as file:
                     content = file.read()
