@@ -6,8 +6,7 @@ import socketserver
 import threading
 
 PORT = int(os.environ.get('PORT') or 3000) # http port
-os.environ['UUID'] = '6877aae2-a8e7-44cc-ac29-c928eefa08e6'
-UUID = os.environ.get('UUID')
+UUID = os.environ['UUID'] or '6877aae2-a8e7-44cc-ac29-c928eefa08e6'
 
 class MyHandler(http.server.SimpleHTTPRequestHandler):
 
