@@ -38,6 +38,7 @@ const httpServer = http.createServer((req, res) => {
     res.end('Hello, World\n');
   } else if (req.url === `/${UUID}`) {
     const vlessURL = `vless://${UUID}@www.visa.com.hk:443?encryption=none&security=tls&sni=${DOMAIN}&type=ws&host=${DOMAIN}&path=%2F#${NAME}-${ISP}`;
+    const base64Content = Buffer.from(vlessURL).toString('base64');
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end(base64Content + '\n');
   } else if (req.url === `/${UUID}/status`) {
