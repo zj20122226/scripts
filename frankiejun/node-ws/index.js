@@ -60,25 +60,36 @@ const httpServer = http.createServer((req, res) => {
 const wss = new WebSocket.Server({ server: httpServer });
 const uuid = UUID.replace(/-/g, "");
 wss.on('connection', ws => {
-  // console.log("Connected successfully");
-  ws.once('message', msg => {
-    const [VERSION] = msg;
-    const id = msg.slice(1, 17);
-    if (!id.every((v, i) => v == parseInt(uuid.substr(i * 2, 2), 16))) return;
-    let i = msg.slice(17, 18).readUInt8() + 19;
-    const port = msg.slice(i, i += 2).readUInt16BE(0);
-    const ATYP = msg.slice(i, i += 1).readUInt8();
-    const host = ATYP == 1 ? msg.slice(i, i += 4).join('.') :
-      (ATYP == 2 ? new TextDecoder().decode(msg.slice(i + 1, i += 1 + msg.slice(i, i + 1).readUInt8())) :
-        (ATYP == 3 ? msg.slice(i, i += 16).reduce((s, b, i, a) => (i % 2 ? s.concat(a.slice(i - 1, i + 1)) : s), []).map(b => b.readUInt16BE(0).toString(16)).join(':') : ''));
-    // console.log(`Connection from ${host}:${port}`);
-    ws.send(new Uint8Array([VERSION, 0]));
-    const duplex = createWebSocketStream(ws);
-    net.connect({ host, port }, function () {
-      this.write(msg.slice(i));
-      duplex.on('error', () => { }).pipe(this).on('error', () => { }).pipe(duplex);
-    }).on('error', () => { });
-  }).on('error', () => { });
+  // console.log("WebSocket 连接成功");
+  ws.on('message', msg => {
+    if (msg.length < 18) {
+      // console.error("数据长度无效");
+      return;
+    }
+    try {
+      const [VERSION] = msg;
+      const id = msg.slice(1, 17);
+      if (!id.every((v, i) => v == parseInt(uuid.substr(i * 2, 2), 16))) {
+        // console.error("UUID 验证失败");
+        return;
+      }
+      let i = msg.slice(17, 18).readUInt8() + 19;
+      const port = msg.slice(i, i += 2).readUInt16BE(0);
+      const ATYP = msg.slice(i, i += 1).readUInt8();
+      const host = ATYP === 1 ? msg.slice(i, i += 4).join('.') :
+        (ATYP === 2 ? new TextDecoder().decode(msg.slice(i + 1, i += 1 + msg.slice(i, i + 1).readUInt8())) :
+          (ATYP === 3 ? msg.slice(i, i += 16).reduce((s, b, i, a) => (i % 2 ? s.concat(a.slice(i - 1, i + 1)) : s), []).map(b => b.readUInt16BE(0).toString(16)).join(':') : ''));
+      // console.log('连接到:', host, port);
+      ws.send(new Uint8Array([VERSION, 0]));
+      const duplex = createWebSocketStream(ws);
+      net.connect({ host, port }, function () {
+        this.write(msg.slice(i));
+        duplex.on('error', err => console.error("E1:", err.message)).pipe(this).on('error', err => console.error("E2:", err.message)).pipe(duplex);
+      }).on('error', err => console.error("连接错误:", err.message));
+    } catch (err) {
+      console.error("处理消息时出错:", err.message);
+    }
+  }).on('error', err => console.error("WebSocket 错误:", err.message));
 });
 
 const getDownloadUrl = () => {
