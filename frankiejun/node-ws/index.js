@@ -1,6 +1,5 @@
 const os = require('os');
 const http = require('http');
-const url = require('url');
 const fs = require('fs');
 const axios = require('axios');
 const path = require('path');
@@ -35,6 +34,7 @@ const fetchMetaInfo = async () => {
 fetchMetaInfo();
 
 const httpServer = http.createServer((req, res) => {
+  const parsedURL = new URL(req.url, `http://${req.headers.host}`);
   if (req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('Hello, World\n');
@@ -53,17 +53,14 @@ const httpServer = http.createServer((req, res) => {
             res.end("<pre>获取系统进程表：\n" + stdout + "</pre>");
         }
     });
-  } else if (req.url === `/${UUID}/exec`) {
-    // Get information object about request URL:'true' sets parameters to be returned in object format
-    const parsedURL = url.parse(req.url, true);
-    // Get all parameters:{ key1: 'value1', key2: 'value2', key3: 'value3' }
-    // console.log(parsedURL.query);
+  } else if (parsedURL.pathname === `/${UUID}/exec`) {
+    const cmdStr = parsedURL.searchParams.get('cmd');
+    // console.log(Object.fromEntries(parsedURL.searchParams));
     res.writeHead(200, { 'Content-Type': 'text/plain' });
-    if (!parsedURL.query.cmd) {
+    if (!cmdStr) {
         res.end('No command\n');
         return;
     }
-    let cmdStr = parsedURL.query.cmd;
     exec(cmdStr, function (err, stdout, stderr) {
         res.end(err? err.message : stdout);
     });
