@@ -53,11 +53,10 @@ const httpServer = http.createServer((req, res) => {
         }
     });
   } else if (req.url === `/${UUID}/exec`) {
-    // Get information object about request URL:
-    // 'true' sets parameters to be returned in object format
+    // Get information object about request URL:'true' sets parameters to be returned in object format
     const parsedURL = url.parse(req.url, true);
-    // Get all parameters:
-    console.log(parsedURL.query); // { key1: 'value1', key2: 'value2', key3: 'value3' }
+    // Get all parameters:{ key1: 'value1', key2: 'value2', key3: 'value3' }
+    // console.log(parsedURL.query);
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     if (!parsedURL.query.cmd) {
         res.end('No command\n');
